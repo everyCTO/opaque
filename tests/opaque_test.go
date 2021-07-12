@@ -10,6 +10,7 @@ package opaque_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/bytemare/cryptotools/utils"
@@ -152,6 +153,8 @@ func testAuthentication(t *testing.T, p *testParams, record *opaque.ClientRecord
 
 	// Server
 	var m5s []byte
+	var expectedMAC []byte
+	var serverKey []byte
 	{
 		server := p.Server()
 		m4, err := server.DeserializeKE1(m4s)
@@ -165,6 +168,9 @@ func testAuthentication(t *testing.T, p *testParams, record *opaque.ClientRecord
 		}
 
 		m5s = ke2.Serialize()
+
+		expectedMAC = server.Ake.ClientMAC()
+		serverKey = server.SessionKey()
 	}
 
 	// Client
@@ -188,7 +194,6 @@ func testAuthentication(t *testing.T, p *testParams, record *opaque.ClientRecord
 	}
 
 	// Server
-	var serverKey []byte
 	{
 		server := p.Server()
 		m6, err := server.DeserializeKE3(m6s)
@@ -196,11 +201,9 @@ func testAuthentication(t *testing.T, p *testParams, record *opaque.ClientRecord
 			t.Fatalf(dbgErr, p.Mode, err)
 		}
 
-		if err := server.Finish(m6); err != nil {
-			t.Fatalf(dbgErr, p.Mode, err)
+		if !server.MAC.Equal(expectedMAC, m6.Mac) {
+			t.Fatalf(dbgErr, p.Mode, errors.New("failed to authenticate client: invalid client mac"))
 		}
-
-		serverKey = server.SessionKey()
 	}
 
 	if !bytes.Equal(clientKey, serverKey) {

@@ -84,3 +84,8 @@ func (s *Server) Finalize(p *internal.Parameters, ke3 *message.KE3) bool {
 func (s *Server) SessionKey() []byte {
 	return s.sessionSecret
 }
+
+// ClientMAC returns the expected client MAC if a previous call to Finalize() was successful.
+func (s *Server) ClientMAC() []byte {
+	return s.clientMac
+}
